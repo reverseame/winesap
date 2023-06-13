@@ -8,6 +8,8 @@ Specifically, it tries to search AESPs according to this taxonomy:
 
 **NOTE**: you can read more about this taxonomy in this [paper](https://drive.google.com/file/d/1GiGc4Eei4oCvk-5uglWMjblX6yUpI3Lg/view?usp=sharing).
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+
 ## Usage
 
 ```
