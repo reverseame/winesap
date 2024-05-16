@@ -1,3 +1,5 @@
+#!/usr/bin/python2
+# -*- coding: utf-8 -*-
 import re
 import itertools
 
@@ -7,6 +9,7 @@ import volatility.win32.rawreg as rawreg
 import volatility.plugins.registry.registryapi as registryapi
 
 from volatility.plugins.common import AbstractWindowsCommand
+from volatility.renderers import TreeGrid
 from volatility.obj import NoneObject
 
 class Winesap(AbstractWindowsCommand):
@@ -92,6 +95,36 @@ class Winesap(AbstractWindowsCommand):
                         if tp == 'REG_BINARY' or tp == 'REG_NONE':
                             dt = "\n" + "\n".join(["{0:#010x}  {1:<48}  {2}".format(o, h, ''.join(c)) for o, h, c in utils.Hexdump(dt[:0x40])])
                         outfd.write('{0}: {1}: {2}\n'.format(self.get_value_name(filtered_key['value']), tp, dt))
+    
+    def unified_output(self, data):
+        return TreeGrid ([
+                            ("RegType", str),
+                            ("RegName", str),
+                            ("RegKey", str),
+                            ("RegValue", str),
+                            ("Warning", str)
+                        ],
+                        self.generator(data))
+
+    # code inspired in the code provided in Issue #1 by Miguel Martín-Pérez
+    def generator(self, data):
+        for gen in data:
+            for key in gen:
+                root = key['root']
+                filtered_keys = self.filter_key(key['key'], key['value'])
+                for filtered_key in filtered_keys:
+                    if not self._config.MATCH or (self._config.MATCH and filtered_key['reason']):
+                        tp, dt = rawreg.value_data(filtered_key['value'])
+                        if tp == 'REG_BINARY' or tp == 'REG_NONE':
+                            dt = "\n" + "\n".join(["{0:#010x}  {1:<48}  {2}".format(o, h, ''.join(c)) for o, h, c in
+                                                   utils.Hexdump(dt[:0x40])])
+                        dic = {'key': '{0}{1}'.format(root, self.regapi.reg_get_key_path(filtered_key['key'])),
+                               'name': self.get_value_name(filtered_key['value']),
+                               'type': tp,
+                               'value': dt if type(dt) is not NoneObject else "",
+                               'warning': ', '.join(filtered_key['reason']) if filtered_key['reason'] and len(filtered_key['reason']) > 0 else "" 
+                               }
+                        yield(0, [dic['type'], dic['name'], dic['key'], dic['value'].encode('ascii'), dic['warning']])
 
     def filter_key(self, key, value):
         ret = []
