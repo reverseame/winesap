@@ -7,7 +7,7 @@ import volatility.win32.rawreg as rawreg
 import volatility.plugins.registry.registryapi as registryapi
 
 from volatility.plugins.common import AbstractWindowsCommand
-
+from volatility.obj import NoneObject
 
 class Winesap(AbstractWindowsCommand):
     """
@@ -110,6 +110,10 @@ class Winesap(AbstractWindowsCommand):
     def is_string_suspicious(self, string):
         ret = []
         PATHS = ['AppData', 'Roaming', 'Temp', 'Application Data']
+
+        # avoid errors when the value data is unreadable, it can be caused by various reasons (e.g., paging)
+        if type(string) == NoneObject:
+            return ret
 
         if re.search(r'.+\\({0}).+\..+'.format('|'.join(PATHS)), string, flags=re.IGNORECASE):
             ret += ['Suspicious path file']
