@@ -35,16 +35,30 @@ class Winesap(AbstractWindowsCommand):
 
     def get_run(self):
         self.regapi.set_current('ntuser.dat')
-        yield {'root': 'HKCU\\', 'key': self.regapi.reg_get_key('ntuser.dat', 'Software\\Microsoft\\Windows\\CurrentVersion\\Run'), 'value': []}
-        yield {'root': 'HKCU\\', 'key': self.regapi.reg_get_key('ntuser.dat', 'Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce'), 'value': []}
-        for k in self.regapi.reg_get_all_subkeys('ntuser.dat', 'Software\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx'):
+        # HKCU lives in NTUSER.DAT and there is one such hive per user profile.
+        # reg_get_key()/reg_get_all_subkeys() only return the match from the
+        # FIRST hive that contains the key, so per-user ASEPs in every other
+        # NTUSER.DAT (e.g. the interactive user where malware persists) were
+        # silently missed. We must iterate every hive via reg_yield_key().
+        for k, _ in self.regapi.reg_yield_key('ntuser.dat', 'Software\\Microsoft\\Windows\\CurrentVersion\\Run'):
             yield {'root': 'HKCU\\', 'key': k, 'value': []}
+        for k, _ in self.regapi.reg_yield_key('ntuser.dat', 'Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce'):
+            yield {'root': 'HKCU\\', 'key': k, 'value': []}
+        for k, _ in self.regapi.reg_yield_key('ntuser.dat', 'Software\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx'):
+            for s in rawreg.subkeys(k):
+                if s.Name:
+                    yield {'root': 'HKCU\\', 'key': s, 'value': []}
 
-        yield {'root': 'HKCU\\', 'key': self.regapi.reg_get_key('ntuser.dat', 'Software\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\Install\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'), 'value': []}
-        yield {'root': 'HKCU\\', 'key': self.regapi.reg_get_key('ntuser.dat', 'Software\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\Install\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce'), 'value': []}
-        for k in self.regapi.reg_get_all_subkeys('ntuser.dat', 'Software\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\Install\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx'):
-            yield {'root': 'HKCU\\', 'key': k, 'value': ['RunMyApp']}
+        for k, _ in self.regapi.reg_yield_key('ntuser.dat', 'Software\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\Install\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'):
+            yield {'root': 'HKCU\\', 'key': k, 'value': []}
+        for k, _ in self.regapi.reg_yield_key('ntuser.dat', 'Software\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\Install\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce'):
+            yield {'root': 'HKCU\\', 'key': k, 'value': []}
+        for k, _ in self.regapi.reg_yield_key('ntuser.dat', 'Software\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\Install\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx'):
+            for s in rawreg.subkeys(k):
+                if s.Name:
+                    yield {'root': 'HKCU\\', 'key': s, 'value': ['RunMyApp']}
 
+        self.regapi.reset_current()
         self.regapi.set_current('software')
         yield {'root': 'HKLM\\Software\\', 'key': self.regapi.reg_get_key('software', 'Microsoft\\Windows\\CurrentVersion\\Run'), 'value': []}
         yield {'root': 'HKLM\\Software\\', 'key': self.regapi.reg_get_key('software', 'Microsoft\\Windows\\CurrentVersion\\RunOnce'), 'value': []}
