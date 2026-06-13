@@ -1,6 +1,8 @@
 ## Winesap - Volatility Plugin
 
-`Winesap` for Volatility 2.6 aims to search for all Autostart Extensibility Points (AESPs), the subset of OS and application extensibility points that allow a program to auto-start without any explicit user invocation.
+`Winesap` for Volatility 3 aims to search for all Autostart Extensibility Points (AESPs), the subset of OS and application extensibility points that allow a program to auto-start without any explicit user invocation.
+
+> This is the Volatility 3 port. The Volatility 2.6 version lives on the `volatility2-latest` branch.
 
 Specifically, it tries to search AESPs according to this taxonomy:
 
@@ -23,26 +25,17 @@ Search for all Autostart Extensibility Points (AESPs)
         --match: only shows suspicious entries
 ```
 
-You need to provide this project path as [first parameter to Volatility](https://github.com/volatilityfoundation/volatility/wiki/Volatility-Usage#specifying-additional-plugin-directories):
+Add this project path to Volatility 3 with the `-p` (plugin directory) option. The plugin is then available as `winesap.Winesap`:
 
 ```
-$ python vol.py --plugins /path/to/winesap --profile WinProfile -f /path/to/memory.dump winesap --match
-Volatility Foundation Volatility Framework 2.6
+$ python3 vol.py -p /path/to/winesap -f /path/to/memory.dump winesap.Winesap --match
+Volatility 3 Framework 2.28.1
 
-------------------------------
-WARNING: Suspicious path file, Suspicious shell execution
-HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnceEx\0001
-RunMyApp: REG_SZ: rundll32.exe shell32.dll,ShellExec_RunDLL C:\Users\User\AppData\Roaming\Btyzjscppg\cmd.exe
-------------------------------
-WARNING: Suspicious path file, Suspicious shell execution
-HKLM\System\ControlSet001\services\Wevbqmpyfl
-ImagePath: REG_EXPAND_SZ: rundll32.exe shell32.dll,ShellExec_RunDLL C:\Users\User\AppData\Roaming\Pojgcucima\cmd.exe
-------------------------------
-WARNING: Suspicious path file
-HKLM\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\chrome.exe
-Debugger: REG_SZ: C:\Users\User\AppData\Roaming\Aorafljuaz\cmd.exe
-------------------------------
+RegType  RegName     RegKey                                                          RegValue                                            Warning
+REG_SZ   ALINAhuahs  HKCU [Usuario]\Software\Microsoft\Windows\CurrentVersion\Run    C:\Users\Usuario\AppData\Roaming\ALINA_CJLXYJ.exe   Suspicious path file
 ```
+
+The output is a `TreeGrid`, so it also works with the standard Volatility 3 renderers (`-r csv`, `-r json`, `-r pretty`). Per-user `HKCU` entries are labelled with the originating profile (e.g. `HKCU [Usuario]`) because every `NTUSER.DAT` hive is scanned, not just one.
 
 ## License
 
